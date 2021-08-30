@@ -11,7 +11,7 @@ def h5csr_into_mem_rows(rows, h5dataset):
     indices_h5 = h5dataset['indices']
     data_h5 = h5dataset['data']
 
-    indptr, indices, data = row_index_csr(rows, indptr_h5, indices_h5, data_h5,  mode='other')
+    indptr, indices, data = row_index_csr(rows, indptr_h5, indices_h5, data_h5)
 
     return sparse.csr_matrix((data, indices, indptr), shape=[len(rows), original_cols])
 
