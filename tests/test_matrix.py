@@ -1,6 +1,10 @@
 from scipy import sparse
 from anndata_oom.matrix import get_row, row_index_csr
+from anndata_oom.oom import oom_smooth
 import numpy as np
+from anndata import AnnData
+import h5py
+
 
 def test_get_row():
 
@@ -43,3 +47,38 @@ def test_row_index_csr():
         indptr, indices, data = row_index_csr(rows, s.indptr, s.indices, s.data)
         q = sparse.csr_matrix((data, indices, indptr), shape=[len(rows), s.shape[1]] )
         assert np.all(s[rows].A == q.A)
+
+
+def test_smoothing():
+    """
+    simple scenario: two cluster of cells with identical expression within the cluster
+    """
+    a = [[1, 2, 0],  #0
+         [1, 2, 0],  #1
+         [1, 2, 0],  #2
+         [0, 0, 1],  #3
+         [0, 0, 2],  #4
+         [0, 0, 2]]  #5
+
+    neigbourshoods = [
+        [0, 1, 1, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1],
+        [0, 0, 0, 1, 0, 1],
+        [0, 0, 0, 1, 1, 0]]
+
+    adata = AnnData(sparse.csr_matrix(a))
+    adata.obsp['connectivities'] = sparse.csr_matrix(neigbourshoods)
+    fname = '/tmp/pytest_sdfgsdtrghkjnr.h5ad'
+    adata.write_h5ad(fname)
+
+    with h5py.File(fname) as h5fh:
+        # smoothing must not change anything here
+        assert np.all(oom_smooth(h5fh, [0]).A == np.array([1 ,2 ,0]))
+
+        # here it should look at cells 4,5
+        assert np.all(oom_smooth(h5fh, [3]).A == np.array([0, 0, 2]))
+
+        # here it should look at cells 3,5
+        assert np.all(oom_smooth(h5fh, [4]).A == np.array([0, 0, 1.5]))
