@@ -1,0 +1,28 @@
+[project]
+name = "anndata-oom"
+version = "0.1.0"
+description = "Out of memory tricks for adata"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  {name = "redst4r", email = "redst4r@web.de"}
+]
+maintainers = [
+  {name = "redst4r", email = "redst4r@web.de"}
+]
+keywords = ["scanpy"]
+# packages=['anndata_oom'],
+
+dependencies = [
+    "anndata>=0.10.9",
+    "h5py>=3.12.1",
+    "numpy>=2.1.2",
+    "pandas>=2.2.3",
+    "scipy>=1.14.1",
+    "tqdm>=4.66.5",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "ruff>=0.6.9",
+]
