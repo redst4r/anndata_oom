@@ -1,6 +1,7 @@
 from scipy import sparse
 from anndata_oom.matrix import get_row, row_index_csr
-from anndata_oom.oom import oom_smooth
+from anndata_oom.oom import oom_smooth, oom_mean_var
+
 import numpy as np
 from anndata import AnnData
 import h5py
@@ -82,3 +83,29 @@ def test_smoothing():
 
         # here it should look at cells 3,5
         assert np.all(oom_smooth(h5fh, [4]).A == np.array([0, 0, 1.5]))
+        #assert np.all(oom_smooth(h5fh, [4]).toarray() == np.array([0, 0, 1.5]))
+
+
+def test_mean_var():
+    a = np.array(
+        [[1, 2, 0],  #0
+         [0, 4, 0],  #1
+         [2, 3, 0]]
+    )
+
+    adata = AnnData(sparse.csr_matrix(a))
+    fname = '/tmp/pytest_sdfgsdtrghkjndfasdfag.h5ad'
+    adata.write_h5ad(fname)
+
+    with h5py.File(fname) as h5fh:
+
+        m, v, sv = oom_mean_var(h5fh['/X'], use_raw=False)
+        print(f"m: {m}")
+        # smoothing must not change anything here
+        assert np.all(
+            m == a.mean(0)
+        )
+        assert np.all(
+            v == np.var(a, 0)
+        )
+

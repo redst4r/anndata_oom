@@ -1,5 +1,23 @@
 from scipy import sparse
 
+def h5_iter_csr(Xgroup):
+    """iterate over the rows of the CSR matrix encoded in `Xgroup`
+
+    yields row, colix, data
+    """
+
+    nrow, ncols = Xgroup.attrs['shape']
+    assert Xgroup.attrs['encoding-type'] == "csr_matrix"
+
+    h5_indptr = Xgroup['indptr']
+    h5_indices = Xgroup['indices']
+    h5_data = Xgroup['data']
+
+    for r in range(nrow):
+        # colix, data = get_row_from_h5ad(h5_indptr, h5_indices, h5_data, r)
+        colix, data = get_row(r, h5_indptr, h5_indices, h5_data)
+        yield r, colix, data
+
 
 def h5csr_into_mem_rows(rows, h5dataset):
     """
@@ -20,7 +38,12 @@ def get_row(row, indptr_h5, indices_h5, data_h5):
     """
     get a row from a csr matrix, returns colum indices and data
     """
-    a, b = indptr_h5[row:row+2]
+    a, b = indptr_h5[row:row+2] # TODO is this really correct?! ACtually yes! see next two lines
+    # a2 = indptr_h5[row]
+    # b2 = indptr_h5[row+1]
+    # assert a == a2
+    # assert b == b2
+
     col_ix = indices_h5[a:b]  # the colum indices of row
     data = data_h5[a:b]
     return col_ix, data
