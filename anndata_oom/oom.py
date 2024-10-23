@@ -20,9 +20,9 @@ def batch(some_iterable, batchsize):
     """
     # TODO this does not guard against np.arrays as they are also iterable (over single elements)
     assert isinstance(some_iterable, collections.abc.Iterable)
-    l = len(some_iterable)
-    for ndx in range(0, l, batchsize):
-        yield some_iterable[ndx : min(ndx + batchsize, l)]
+    length = len(some_iterable)
+    for ndx in range(0, length, batchsize):
+        yield some_iterable[ndx : min(ndx + batchsize, length)]
 
 
 def oom_smooth(h5handle: h5py.File, cells, BATCHSIZE=1000, add_self=True):
@@ -132,3 +132,5 @@ def _oom_mean_var(Xgroup: h5py.Group):
         M_vec / (count_vec - 1),
     )
     return mean_vec, variance, sample_variance
+
+

@@ -1,5 +1,5 @@
 from scipy import sparse
-from anndata_oom.matrix import get_row, row_index_csr
+from anndata_oom.matrix import get_row, row_index_csr, csr_transform_rows_oom, create_empy_matrix
 from anndata_oom.oom import oom_smooth, oom_mean_var
 
 import numpy as np
@@ -107,3 +107,36 @@ def test_mean_var():
         # smoothing must not change anything here
         assert np.all(m == a.mean(0))
         assert np.all(v == np.var(a, 0))
+
+
+def test_row_transform():
+    a = np.array(
+        [
+            [1, 2, 0],  # 0
+            [0, 4, 0],  # 1
+            [2, 3, 0],
+        ]
+    )
+
+    adata = AnnData(sparse.csr_matrix(a))
+    fname = "/tmp/pytest_agsrqer3.h5ad"
+    adata.write_h5ad(fname)
+
+    with h5py.File(fname, mode='r+') as store:
+
+        source = store['/X']
+        target = create_empy_matrix(store, '/layers/lognorm', source.attrs['shape'][1])
+
+        def transformer(r, col_ix, data): # just the identiyu
+            return col_ix, data
+        csr_transform_rows_oom(
+            source,
+            target,
+            transformer,
+        )
+
+        assert np.all(source['indices'][:] == target['indices'][:])
+        assert np.all(source['indptr'][:] == target['indptr'][:])
+        assert np.all(source['data'][:] == target['data'][:])
+        assert np.all(source.attrs['shape'] == target.attrs['shape'])
+# assert np.all(group_normed['data'][:] == store['/X/data'][:])
