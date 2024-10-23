@@ -132,5 +132,3 @@ def _oom_mean_var(Xgroup: h5py.Group):
         M_vec / (count_vec - 1),
     )
     return mean_vec, variance, sample_variance
-
-
