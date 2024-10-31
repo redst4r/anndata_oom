@@ -205,6 +205,12 @@ def subset_variables_h5ad(Xgroup, vargroup, sub_ix, store, target_x_name, target
 
     # subset the var dataframe
     sub_vargroup = store.create_group(target_var_name)
+    #copy the attrs
+    for k,v in dict(vargroup.attrs).items():
+        sub_vargroup.attrs[k] = v
+
     for colname in vargroup:
+        # print("colname", colname)
         new_entries = vargroup[colname][sub_ix]
+        # print(new_entries)
         sub_vargroup.create_dataset(name=colname, data=new_entries)

@@ -1,10 +1,10 @@
-from anndata_oom.matrix import csr_transform_rows_oom, create_empy_matrix
+from anndata_oom.matrix import csr_transform_rows_oom, create_empy_matrix, subset_variables_h5ad
 from anndata_oom.oom import _oom_mean_var
-from anndata_oom.matrix import subset_variables_h5ad
 import numpy as np
 import pandas as pd
 import h5py
-
+from statsmodels import robust
+import warnings
 
 def _fn_normalize_per_cell(row_ix: int, col_ix: np.ndarray, data: np.ndarray):
     alpha = 10_000  # Transcript per 10k
@@ -25,9 +25,9 @@ def annotate_dispersion(df, top_n):
     """
     adds dispersion and normalized dispersion
      to each gene (with known mean and var)
+
+     from `scanpy/src/scanpy/preprocessing/_deprecated/highly_variable_genes.py`
     """
-    from statsmodels import robust
-    import warnings
 
     df["mean_bin"] = pd.cut(
         df["means"],
@@ -86,10 +86,12 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, top_n: int):
 
     # # restrict the matrices to HVG
     print("hvg filter")
-    HVG = set(df_filtered.query("highly_variable").index)
+    HVG = list(df_filtered.query("highly_variable").index)
+    print(HVG)
     sub_ix = [
         ix for ix, gene in enumerate(df.index) if gene in HVG
     ]  # which columns to keep
+    assert len(HVG) == len(sub_ix)
     subset_variables_h5ad(
         target_h5["/X"], target_h5["/var"], sub_ix, target_h5, "/Xsub1", "/varsub1"
     )
@@ -100,29 +102,38 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, top_n: int):
     del target_h5["/var"]
     target_h5.move("/varsub1", "/var")
 
+
+    actual_top_n = target_h5["/X"].attrs['shape'][1]
+    print("actual_top_n", actual_top_n)
+
     # renormalize and log
     print("renorm + log")
-    group_transform = create_empy_matrix(target_h5, "/layers/norm_log", top_n)
+    group_transform = create_empy_matrix(target_h5, "/layers/norm_log", actual_top_n)
     csr_transform_rows_oom(target_h5["/X"], group_transform, _fn_normalize_log_per_cell)
-
+    
     # do scaling from /layers/norm_log into /layers/norm_log_scale
     # need to recompute the mean/var
     print("scale")
     m, v, _ = _oom_mean_var(group_transform)
 
     def row_trans_scale(row_ix: int, col_ix: np.ndarray, data: np.ndarray):
-        x = np.zeros(top_n)
+        x = np.zeros(actual_top_n)
         x[col_ix] = data
 
         x = (x - m) / np.sqrt(v)
-        new_col_ix = np.arange(top_n)
+        new_col_ix = np.arange(actual_top_n)
         newdata = x
         return new_col_ix, newdata
 
-    group_transform = create_empy_matrix(target_h5, "/layers/norm_log_scale", top_n)
+    group_transform = create_empy_matrix(target_h5, "/layers/norm_log_scale", actual_top_n)
     csr_transform_rows_oom(
         target_h5["/layers/norm_log"], group_transform, row_trans_scale
     )
+
+    # print("shape X", target_h5['/Xsub1'].attrs['shape'])
+    print("shape var", dict(target_h5['/var'].attrs))
+    print("shape X", dict(target_h5['/layers/norm_log_scale'].attrs))
+    print("var X", target_h5['/var/hgnc_symbol'])
 
     del target_h5["/X"]
     target_h5.move("/layers/norm_log_scale", "/X")
