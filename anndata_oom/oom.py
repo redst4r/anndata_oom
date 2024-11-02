@@ -8,32 +8,7 @@ from scipy import sparse
 from anndata_oom.matrix import h5csr_into_mem_rows, h5_iter_csr
 import tqdm
 import collections
-from sctools.misc import load_dataframe
-import anndata
-
-
-def subset_cells_h5ad_file(h5file: str, subset_ix, use_raw=False):
-    """
-    create an AnnData with a subset of the cells in the h5ad.
-    """
-
-    if use_raw:
-        x_path = "/raw/X"
-        var_path = "/raw/var"
-    else:
-        x_path = "/X"
-        var_path = "/var"
-
-    with h5py.File(h5file, "r") as f:
-        X = h5csr_into_mem_rows(subset_ix, f[x_path])
-
-    var = load_dataframe(h5file, var_path)
-    df_obs = load_dataframe(h5file, "/obs")
-    obs = df_obs.iloc[subset_ix]
-
-    adata = anndata.AnnData(X, obs=obs, var=var)
-
-    return adata
+# import anndata
 
 
 def batch(some_iterable, batchsize):
