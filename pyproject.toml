@@ -3,26 +3,32 @@ name = "anndata-oom"
 version = "0.1.0"
 description = "Out of memory tricks for adata"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
+license = {text = "BSD 2-Clause License"} 
 authors = [
-  {name = "redst4r", email = "redst4r@web.de"}
+  {name = "redst4r", email = "redst4r@web.de"},
 ]
 maintainers = [
-  {name = "redst4r", email = "redst4r@web.de"}
+  {name = "redst4r", email = "redst4r@web.de"},
 ]
-keywords = ["scanpy"]
-# packages=['anndata_oom'],
-
 dependencies = [
     "anndata>=0.10.9",
     "h5py>=3.12.1",
-    "numpy>=2.1.2",
-    "pandas>=2.2.3",
+    "scanpy>=1.10.3",
     "scipy>=1.14.1",
+    "statsmodels>=0.14.4",
     "tqdm>=4.66.5",
 ]
 
+[project.urls]
+Repository = 'http://github.com/redst4r/anndata_oom/'
+
 [tool.uv]
 dev-dependencies = [
-    "ruff>=0.6.9",
+    "mypy>=1.12.1",
+    "pytest>=8.3.3",
+    "ruff>=0.7.0",
+    "scanpy>=1.10.3",
+    "types-tqdm>=4.66.0.20240417",
 ]
+
