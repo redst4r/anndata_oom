@@ -1,10 +1,13 @@
 from anndata_oom.matrix import csr_transform_rows_oom, create_empy_matrix, subset_variables_h5ad
 from anndata_oom.oom import _oom_mean_var
+from anndata_oom.dataframe import add_column
 import numpy as np
 import pandas as pd
 import h5py
 from statsmodels import robust
 import warnings
+from scanpy.preprocessing._highly_variable_genes import _get_mean_bins, _get_disp_stats, _Cutoffs, _nth_highest
+
 
 def _fn_normalize_per_cell(row_ix: int, col_ix: np.ndarray, data: np.ndarray):
     alpha = 10_000  # Transcript per 10k
@@ -48,8 +51,38 @@ def annotate_dispersion(df, top_n):
     return df
 
 
-def oom_processing(source_h5: h5py.File, target_h5: h5py.File, top_n: int):
+
+# had to redo this one, the original code expects an AnnData, but onlu to access adata.n_vars
+def _subset_genes(
+    n_vars,
+    *,
+    mean,
+    dispersion_norm,
+    cutoff: _Cutoffs | int,
+):
+    """Get boolean mask of genes with normalized dispersion in bounds."""
+    if isinstance(cutoff, _Cutoffs):
+        dispersion_norm = np.nan_to_num(dispersion_norm)  # similar to Seurat
+        return cutoff.in_bounds(mean, dispersion_norm)
+    n_top_genes = cutoff
+    del cutoff
+
+    if n_top_genes > n_vars:
+        # logg.info("`n_top_genes` > `n_var`, returning all genes.")
+        n_top_genes = n_vars
+    disp_cut_off = _nth_highest(dispersion_norm, n_top_genes)
+    # logg.debug(
+        # f"the {n_top_genes} top genes correspond to a "
+        # f"normalized dispersion cutoff of {disp_cut_off}"
+    # )
+    return np.nan_to_num(dispersion_norm, nan=-np.inf) >= disp_cut_off
+
+
+def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int):
     """
+
+    does on-disk processing of the `source_h5` storing the result in target_h5
+
     Steps:
     1. normalize per cell
     2. HVG selection
@@ -70,19 +103,74 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, top_n: int):
     print("hvg: mean/var")
     mean, var, sv = _oom_mean_var(group_transform)
 
+    n_vars = mean.shape[0]
+    print(f"n_vars {n_vars}")
+
     mean[mean == 0] = 1e-12  # set entries equal to zero to small value
     dispersion = var / mean
 
-    target_h5.create_dataset("/var/means", data=mean)
-    target_h5.create_dataset("/var/vars", data=var)
-    target_h5.create_dataset("/var/dispersion", data=dispersion)
+    # print(mean, type(mean), mean.dtype)
 
-    df = pd.DataFrame(
-        {"means": mean, "vars": var, "dispersions": dispersion},
-        index=source_h5["/var/hgnc_symbol"][:],
-    )
-    df_filtered = df.query("means>1e-12").copy()
-    df_filtered = annotate_dispersion(df_filtered, top_n=top_n)
+    add_column(target_h5['/var'], 'means', data=mean, encoding_type='array')
+    # target_h5.create_dataset("/var/means", data=mean)
+    # target_h5['/var/means'].attrs['encoding-type'] = 'array'
+    # target_h5['/var/means'].attrs['encoding-version'] = '0.2.0'
+
+    add_column(target_h5['/var'], 'vars', data=var, encoding_type='array')
+    # target_h5.create_dataset("/var/vars", data=var)
+    # target_h5['/var/vars'].attrs['encoding-type'] = 'array'
+    # target_h5['/var/vars'].attrs['encoding-version'] = '0.2.0'
+
+    add_column(target_h5['/var'], 'dispersion', data=dispersion, encoding_type='array')
+    # target_h5.create_dataset("/var/dispersion", data=dispersion)
+    # target_h5['/var/dispersion'].attrs['encoding-type'] = 'array'
+    # target_h5['/var/dispersion'].attrs['encoding-version'] = '0.2.0'
+
+    # order = target_h5['/var'].attrs['column-order']
+    # order = np.append(order, ['means', 'vars', 'dispersion'])
+    # target_h5['/var'].attrs['column-order'] = order
+
+    if False:
+        df = pd.DataFrame(
+            {"means": mean, "vars": var, "dispersions": dispersion},
+            index=source_h5["/var/hgnc_symbol"][:],
+        )
+        df_filtered = df.query("means>1e-12").copy()
+        df_filtered = annotate_dispersion(df_filtered, top_n=n_top_genes)
+
+    else:
+        # piggy-backing on scanpys implementation of HVG
+        min_disp: float = 0.5,
+        max_disp: float = np.inf,
+        min_mean: float = 0.0125,
+        max_mean: float = 3,
+        span: float = 0.3,
+        n_bins: int = 20,
+        flavor = 'cell_ranger'
+
+        cutoff = _Cutoffs.validate(
+            n_top_genes=n_top_genes,
+            min_disp=min_disp,
+            max_disp=max_disp,
+            min_mean=min_mean,
+            max_mean=max_mean,
+        )
+
+        df = pd.DataFrame(dict(zip(["means", "dispersions"], (mean, dispersion))))
+        df = df.query("means>1e-12")   # TODO: the scanpy code doesnt do that!
+
+        df["mean_bin"] = _get_mean_bins(df["means"], flavor, n_bins)
+        disp_stats = _get_disp_stats(df, flavor)
+
+        # actually do the normalization
+        df["dispersions_norm"] = (df["dispersions"] - disp_stats["avg"]) / disp_stats["dev"]
+        df["highly_variable"] = _subset_genes(
+            n_vars,
+            mean=mean,
+            dispersion_norm=df["dispersions_norm"].to_numpy(),
+            cutoff=cutoff,
+        )
+        df_filtered = df
 
     # # restrict the matrices to HVG
     print("hvg filter")
@@ -102,9 +190,17 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, top_n: int):
     del target_h5["/var"]
     target_h5.move("/varsub1", "/var")
 
+    add_column(target_h5['/var'], 'dispersions_norm', data=df_filtered.query("highly_variable")['dispersions_norm'], encoding_type='array')
+
+
+
 
     actual_top_n = target_h5["/X"].attrs['shape'][1]
     print("actual_top_n", actual_top_n)
+
+
+     #TODO: explicitly create layers if it doesnt exist, adding encoding metadata
+     # {'encoding-type': 'dict', 'encoding-version': '0.1.0'}
 
     # renormalize and log
     print("renorm + log")

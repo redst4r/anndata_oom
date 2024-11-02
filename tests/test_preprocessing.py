@@ -19,13 +19,14 @@ def test_prep():
 
     n_cells = 1000
     n_genes = 50
-    top_n = 100
+    top_n = 10
 
     if False:
+        sparsity = 0.9
         means = np.random.uniform(100,10000, size=n_genes)
         variances = np.random.uniform(5,50, size=n_genes)
         a = np.random.normal(means, variances, size=(n_cells, n_genes)).astype(np.float32)
-        mask = np.random.rand(n_cells, n_genes) > 0.5
+        mask = np.random.rand(n_cells, n_genes) > sparsity
         a = sparse.csr_matrix(a * mask)
 
         genenames = [f"g{i}" for i in range(n_genes)]
@@ -43,7 +44,7 @@ def test_prep():
 
     outfile = f"{fname}.out.h5ad"
     with h5py.File(fname, 'r') as source, h5py.File(outfile, 'w') as target:
-        oom_processing(source, target, top_n=top_n)
+        oom_processing(source, target, n_top_genes=top_n)
 
     adata_observed = anndata.read_h5ad(outfile)
     obs_hvg = adata_observed.var_names

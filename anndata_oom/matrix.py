@@ -2,6 +2,7 @@ from scipy import sparse
 import h5py
 import tqdm
 import numpy as np
+from anndata_oom.dataframe import subset_rows_of_dataframe
 
 
 def h5sparse_to_csr(group: h5py.Group):
@@ -119,7 +120,7 @@ def create_empy_matrix(store: h5py.File, group_name: str, ncols: int):
     group = store.create_group(group_name)
     group.attrs["encoding-type"] = "csr_matrix"
     group.attrs["shape"] = (0, ncols)
-    group.attrs["encoding-version"] = "0.1.0"
+    group.attrs["encoding-version"] = "0.1.0"  # TODO: update to 0.2.0?
 
     group.create_dataset("indices", shape=0, maxshape=(None,), chunks=True, dtype=int)
     group.create_dataset("indptr", shape=0, maxshape=(None,), chunks=True, dtype=int)
@@ -198,19 +199,10 @@ def csr_matrix_subset_columns(Xgroup, subset_ix, target: h5py.Group, name: str):
     return group_transform
 
 
-
 def subset_variables_h5ad(Xgroup, vargroup, sub_ix, store, target_x_name, target_var_name):
     # subset the matrix, save to store[target_x_name]
     _gt = csr_matrix_subset_columns(Xgroup, sub_ix, target=store, name=target_x_name)
 
-    # subset the var dataframe
+    # subset the /var into /target_var_name
     sub_vargroup = store.create_group(target_var_name)
-    #copy the attrs
-    for k,v in dict(vargroup.attrs).items():
-        sub_vargroup.attrs[k] = v
-
-    for colname in vargroup:
-        # print("colname", colname)
-        new_entries = vargroup[colname][sub_ix]
-        # print(new_entries)
-        sub_vargroup.create_dataset(name=colname, data=new_entries)
+    subset_rows_of_dataframe(sub_ix, vargroup, sub_vargroup)
