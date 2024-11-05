@@ -7,23 +7,8 @@ import numpy as np
 from scipy import sparse
 from anndata_oom.matrix import h5csr_into_mem_rows, h5_iter_csr
 import tqdm
-import collections
 # import anndata
-
-
-def batch(some_iterable, batchsize):
-    """
-    splits the iterable into a couple of chunks of size n
-    handy for iterating over batches
-    :param some_iterable:  iterable to be chunked/batched
-    :param batchsize: batchSize
-    :return: gnerator over iterables
-    """
-    # TODO this does not guard against np.arrays as they are also iterable (over single elements)
-    assert isinstance(some_iterable, collections.abc.Iterable)
-    length = len(some_iterable)
-    for ndx in range(0, length, batchsize):
-        yield some_iterable[ndx : min(ndx + batchsize, length)]
+import more_itertools
 
 
 def oom_smooth(h5handle: h5py.File, cells, BATCHSIZE=1000, add_self=True):
@@ -41,7 +26,7 @@ def oom_smooth(h5handle: h5py.File, cells, BATCHSIZE=1000, add_self=True):
 
     _res = []
     nbatches = int(np.ceil(len(cells) / BATCHSIZE))
-    for rowbatch in tqdm.tqdm(batch(cells, BATCHSIZE), total=nbatches):
+    for rowbatch in tqdm.tqdm(more_itertools.chunked(cells, BATCHSIZE), total=nbatches):
         # pull the connetivity graph for the requested cells into mem. this is NOT a square matrix
         connectivities = h5csr_into_mem_rows(rowbatch, h5conn)  # batchsize x totalCells
 
