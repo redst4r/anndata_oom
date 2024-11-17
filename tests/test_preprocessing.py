@@ -1,12 +1,4 @@
 from scipy import sparse
-from anndata_oom.matrix import (
-    get_row,
-    row_index_csr,
-    csr_transform_rows_oom,
-    create_empy_matrix,
-)
-from anndata_oom.oom import oom_smooth, oom_mean_var
-
 import numpy as np
 import anndata
 import h5py
