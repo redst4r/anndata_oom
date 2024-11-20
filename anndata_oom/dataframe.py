@@ -10,6 +10,8 @@ def add_column(df_group, colname, data, encoding_type:str):
     same as `df[colname] = data`
     """
 
+    assert encoding_type in ["array", "string-array"], f"unknown encoding_type {encoding_type}"
+
     # first check the the data has the right shape
     for k in df_group.keys():
         assert df_group[k].shape == data.shape, "trying to add a column with the wrong shape!"

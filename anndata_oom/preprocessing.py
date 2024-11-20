@@ -157,7 +157,7 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
         )
 
         df = pd.DataFrame(dict(zip(["means", "dispersions"], (mean, dispersion))))
-        df = df.query("means>1e-12")   # TODO: the scanpy code doesnt do that!
+        df = df.query("means>1e-12").copy() # copy to avoid the chainedIndex warning   # TODO: the scanpy code doesnt do that!
 
         df["mean_bin"] = _get_mean_bins(df["means"], flavor, n_bins)
         disp_stats = _get_disp_stats(df, flavor)
@@ -173,9 +173,9 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
         df_filtered = df
 
     # # restrict the matrices to HVG
-    print("hvg filter")
+    # print("hvg filter")
     HVG = list(df_filtered.query("highly_variable").index)
-    print(HVG)
+    # print(HVG)
     sub_ix = [
         ix for ix, gene in enumerate(df.index) if gene in HVG
     ]  # which columns to keep
@@ -196,7 +196,7 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
 
 
     actual_top_n = target_h5["/X"].attrs['shape'][1]
-    print("actual_top_n", actual_top_n)
+    # print("actual_top_n", actual_top_n)
 
 
      #TODO: explicitly create layers if it doesnt exist, adding encoding metadata
@@ -227,9 +227,9 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
     )
 
     # print("shape X", target_h5['/Xsub1'].attrs['shape'])
-    print("shape var", dict(target_h5['/var'].attrs))
-    print("shape X", dict(target_h5['/layers/norm_log_scale'].attrs))
-    print("var X", target_h5['/var/hgnc_symbol'])
+    # print("shape var", dict(target_h5['/var'].attrs))
+    # print("shape X", dict(target_h5['/layers/norm_log_scale'].attrs))
+    # print("var X", target_h5['/var/hgnc_symbol'])
 
     del target_h5["/X"]
     target_h5.move("/layers/norm_log_scale", "/X")

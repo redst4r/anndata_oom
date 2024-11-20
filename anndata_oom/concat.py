@@ -115,7 +115,7 @@ def stack_adata_on_disk(f1, f2):
 
         # merge /obs
         print("stacking /obs")
-        _merge_obs(store1, store2)  # curently disabled for testing
+        _merge_obs(store1, store2)
 
         # var stays unchanged
 

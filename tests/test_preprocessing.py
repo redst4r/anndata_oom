@@ -28,6 +28,10 @@ def test_prep():
         # adata = sc.datasets.pbmc3k()
         adata = anndata.read_h5ad('tests/pbmc3k.h5ad')
         adata.var.index.name = 'hgnc_symbol'
+        # somehow this is importany, if there's genes with zero count
+        # HVG will go crazy
+        sc.pp.filter_genes(adata, min_cells=1)
+
         # adata = adata[:, :500].copy()
 
     fname = "/tmp/pytest_fsagn.h5ad"
