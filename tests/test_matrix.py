@@ -3,7 +3,8 @@ from anndata_oom.matrix import (
     get_row,
     row_index_csr,
     csr_transform_rows_oom,
-    create_empy_matrix, subset_variables_h5ad
+    create_empy_matrix,
+    subset_variables_h5ad,
 )
 from anndata_oom.oom import oom_mean_var
 import anndata
@@ -21,8 +22,8 @@ def test_get_row():
     assert col_ix == [1] and data == [2]
 
     col_ix, data = get_row(1, s.indptr, s.indices, s.data)
-    np.testing.assert_allclose(col_ix, [0, 1] )
-    np.testing.assert_allclose(data, [1,1] )
+    np.testing.assert_allclose(col_ix, [0, 1])
+    np.testing.assert_allclose(data, [1, 1])
 
     col_ix, data = get_row(2, s.indptr, s.indices, s.data)
     assert len(col_ix) == 0 and len(data) == 0
@@ -48,9 +49,8 @@ def test_row_index_csr():
         assert np.all(s[rows].toarray() == q.toarray())
 
 
-
 def get_random_matrix(nrows, ncols, density):
-    a = sparse.random_array((nrows, ncols), density=density, format='csr') 
+    a = sparse.random_array((nrows, ncols), density=density, format="csr")
     a.data = a.data * 1000
     # a = a.astype(int)
     return a
@@ -107,19 +107,24 @@ def test_row_transform():
 # assert np.all(group_normed['data'][:] == store['/X/data'][:])
 import pandas as pd
 
+
 def test_subset_variables_h5ad():
     n_genes = 10
     a = get_random_matrix(nrows=1000, ncols=n_genes, density=0.9)
     a = sparse.csr_matrix(a)
 
-    adata = AnnData(X=a, var=pd.DataFrame({'hgnc_symbol': [f"g{i}" for i in range(n_genes)]}).set_index('hgnc_symbol'))
+    adata = AnnData(
+        X=a,
+        var=pd.DataFrame({"hgnc_symbol": [f"g{i}" for i in range(n_genes)]}).set_index(
+            "hgnc_symbol"
+        ),
+    )
     fname = "/tmp/test_subset_variables.h5ad"
     adata.write_h5ad(fname)
 
+    sub_ix = [0, 2, 4]
 
-    sub_ix = [0,2, 4]
-
-    with h5py.File(fname, 'r+') as source:
+    with h5py.File(fname, "r+") as source:
         subset_variables_h5ad(
             source["/X"], source["/var"], sub_ix, source, "/Xsub1", "/varsub1"
         )
@@ -137,7 +142,5 @@ def test_subset_variables_h5ad():
     # print(adata.var_names)
     assert np.all(adata_observed.var_names == adata_expected.var_names)
     # assert np.all((adata_observed.X == adata_expected.X).toarray())
-    np.testing.assert_allclose(
-        adata_observed.X.toarray(),
-        adata_expected.X.toarray()
-        )
+    np.testing.assert_allclose(adata_observed.X.toarray(), adata_expected.X.toarray())
+

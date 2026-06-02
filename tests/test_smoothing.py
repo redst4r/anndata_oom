@@ -37,20 +37,20 @@ def test_smoothing():
         assert np.all(oom_smooth(h5fh, [0]).toarray() == np.array([1, 2, 0]))
 
         # here it should look at cells 4,5
-        assert np.all(oom_smooth(h5fh, [3], add_self=False).toarray() == np.array([0, 0, 2]))
+        assert np.all(
+            oom_smooth(h5fh, [3], add_self=False).toarray() == np.array([0, 0, 2])
+        )
         np.testing.assert_allclose(
             oom_smooth(h5fh, [3], add_self=True).toarray(),
-            np.array([[0, 0, (1+2+2)/3]])
+            np.array([[0, 0, (1 + 2 + 2) / 3]]),
         )
 
         # here it should look at cells 3,5
         np.testing.assert_allclose(
             oom_smooth(h5fh, [4], add_self=True).toarray(),
-            np.array([[0, 0, (1+2+2)/3]])
+            np.array([[0, 0, (1 + 2 + 2) / 3]]),
         )
 
         np.testing.assert_allclose(
-            oom_smooth(h5fh, [4], add_self=False).toarray(),
-            np.array([[0, 0, 3/2]])
-        ) 
-
+            oom_smooth(h5fh, [4], add_self=False).toarray(), np.array([[0, 0, 3 / 2]])
+        )
