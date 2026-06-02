@@ -1,9 +1,8 @@
 import h5py
 import numpy as np
 import pandas as pd
-from anndata._io.h5ad import read_dataframe
-from sctools.misc import load_var
 import anndata._io as io
+from .dataframe import load_var, read_dataframe
 
 """
 a bunch of code to merge h5ads on disk without loading things to memory

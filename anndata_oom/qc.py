@@ -39,7 +39,9 @@ def do_qc_oom(h5ad_file: str, use_raw=False):
         gene_counts_ncells = np.zeros(ngenes)
 
         for cell_id, col_indices, data in h5_iter_csr(matrix):
-            gene_counts_ncells[col_indices] += 1
+            gene_counts_ncells[col_indices] += (
+                1  # TODO: should technically check if data>0 here
+            )
             gene_counts[col_indices] += data
 
             n_molecules[cell_id] = sum(data)

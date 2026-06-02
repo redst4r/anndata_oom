@@ -5,6 +5,28 @@ dealign with the Anndata encoding of pandas.DataFrames
 import h5py
 import numpy as np
 
+from anndata._io.h5ad import read_dataframe
+
+
+def load_dataframe(h5ad_filename: str, path: str):
+    """
+    loads any dataframe in the h5ad. path specifics the location within the
+    h5ad (e.g. /raw/var, /obs, /var)
+    """
+    with h5py.File(h5ad_filename, "r") as f:
+        df = read_dataframe(f[path])
+    return df
+
+
+def load_obs(h5ad_filename):
+    """load .obs into memory"""
+    return load_dataframe(h5ad_filename, "/obs")
+
+
+def load_var(h5ad_filename):
+    """load .var into memory"""
+    return load_dataframe(h5ad_filename, "/var")
+
 
 def add_column(df_group, colname, data, encoding_type: str):
     """adding a single column to the dataframe

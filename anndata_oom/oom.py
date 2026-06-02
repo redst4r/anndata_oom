@@ -4,8 +4,7 @@ Out of memory tricks for AnnData
 
 import h5py
 import numpy as np
-from scipy import sparse
-from anndata_oom.matrix import h5csr_into_mem_rows, h5_iter_csr
+from anndata_oom.matrix import h5_iter_csr
 import tqdm
 
 

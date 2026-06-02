@@ -18,7 +18,8 @@ from scanpy.preprocessing._highly_variable_genes import (
 )
 
 
-def _fn_normalize_per_cell(row_ix: int, col_ix: np.ndarray, data: np.ndarray):
+def _fn_normalize_per_cell(row_ix: int, col_ix: np.ndarray, data: np.ndarray):  # type: ignore
+    # NOTE: ok to ignore the first arg, its just the way transform expects the function
     alpha = 10_000  # Transcript per 10k
     _sum = np.sum(data)
     data_norm = alpha * data / _sum
@@ -26,6 +27,7 @@ def _fn_normalize_per_cell(row_ix: int, col_ix: np.ndarray, data: np.ndarray):
 
 
 def _fn_normalize_log_per_cell(row_ix: int, col_ix: np.ndarray, data: np.ndarray):
+    # NOTE: ok to ignore the first arg, its just the way transform expects the function
     alpha = 10_000  # Transcript per 10k
     _sum = np.sum(data)
     data_norm = alpha * data / _sum
