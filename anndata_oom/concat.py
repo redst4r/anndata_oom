@@ -45,12 +45,12 @@ def stack_h5_crs_ondisk(group_to_extend, new_group):
     3. merge the intptr: basically needs to offset everything by the #rows of the "top" matrix
     """
 
-    assert (
-        group_to_extend.attrs["encoding-type"] == "csr_matrix"
-    ), "1st group is NOT a CRS matrix"
-    assert (
-        new_group.attrs["encoding-type"] == "csr_matrix"
-    ), "1st group is NOT a CRS matrix"
+    assert group_to_extend.attrs["encoding-type"] == "csr_matrix", (
+        "1st group is NOT a CRS matrix"
+    )
+    assert new_group.attrs["encoding-type"] == "csr_matrix", (
+        "1st group is NOT a CRS matrix"
+    )
 
     # 1.
     extend_1D_h5dataset(group_to_extend.get("data"), new_group.get("data")[:])
@@ -94,9 +94,9 @@ def stack_adata_on_disk(f1, f2):
         # before we do anything, make sure the columns are compatible
         var1 = load_var(f1)
         var2 = load_var(f2)
-        assert np.all(
-            var1.index == var2.index
-        ), "cant stack matrices, they have different columns"
+        assert np.all(var1.index == var2.index), (
+            "cant stack matrices, they have different columns"
+        )
 
         # guard against other things we dont want to deal with here
         assert len(store1["obsm"].keys()) == 0 & len(store2["obsm"].keys()) == 0

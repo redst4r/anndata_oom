@@ -9,7 +9,6 @@ from anndata_oom.matrix import h5csr_into_mem_rows, h5_iter_csr
 import tqdm
 
 
-
 def oom_mean_var(h5_store: h5py.File, use_raw: bool):
     """calculate the mean and variance over rows (axis=0) for the given h5ad
 

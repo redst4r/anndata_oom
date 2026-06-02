@@ -53,11 +53,15 @@ def h5csr_into_mem_rows(rows, h5dataset: h5py.Group):
     return sparse.csr_matrix((data, indices, indptr), shape=[len(rows), original_cols])
 
 
-def get_row(row, indptr_h5: h5py.Dataset, indices_h5: h5py.Dataset, data_h5: h5py.Dataset):
+def get_row(
+    row, indptr_h5: h5py.Dataset, indices_h5: h5py.Dataset, data_h5: h5py.Dataset
+):
     """
     get a row from a csr matrix, returns colum indices and data
     """
-    a, b = indptr_h5[row:row+2] # TODO is this really correct?! ACtually yes! see next two lines
+    a, b = indptr_h5[
+        row : row + 2
+    ]  # TODO is this really correct?! ACtually yes! see next two lines
     # a2 = indptr_h5[row]
     # b2 = indptr_h5[row+1]
     # assert a == a2
@@ -68,7 +72,9 @@ def get_row(row, indptr_h5: h5py.Dataset, indices_h5: h5py.Dataset, data_h5: h5p
     return col_ix, data
 
 
-def row_index_csr(rows, indptr_h5: h5py.Dataset, indices_h5: h5py.Dataset, data_h5: h5py.Dataset):
+def row_index_csr(
+    rows, indptr_h5: h5py.Dataset, indices_h5: h5py.Dataset, data_h5: h5py.Dataset
+):
     """
     with a matrix in CSR format, extract the given rows and form a new matrix
     """
@@ -175,8 +181,10 @@ def csr_matrix_subset_columns(Xgroup, subset_ix, target: h5py.Group, name: str):
 
     we're using the row_transform API here
     """
-    
-    def _select_cols_transformer(row_ix: int, col_ix: np.ndarray, data: np.ndarray, subset_cols: dict):
+
+    def _select_cols_transformer(
+        row_ix: int, col_ix: np.ndarray, data: np.ndarray, subset_cols: dict
+    ):
         new_col = []
         new_data = []
         for c, d in zip(col_ix, data):
@@ -199,7 +207,9 @@ def csr_matrix_subset_columns(Xgroup, subset_ix, target: h5py.Group, name: str):
     return group_transform
 
 
-def subset_variables_h5ad(Xgroup, vargroup, sub_ix, store, target_x_name, target_var_name):
+def subset_variables_h5ad(
+    Xgroup, vargroup, sub_ix, store, target_x_name, target_var_name
+):
     # subset the matrix, save to store[target_x_name]
     _gt = csr_matrix_subset_columns(Xgroup, sub_ix, target=store, name=target_x_name)
 

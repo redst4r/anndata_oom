@@ -1,4 +1,8 @@
-from anndata_oom.matrix import csr_transform_rows_oom, create_empy_matrix, subset_variables_h5ad
+from anndata_oom.matrix import (
+    csr_transform_rows_oom,
+    create_empy_matrix,
+    subset_variables_h5ad,
+)
 from anndata_oom.oom import _oom_mean_var
 from anndata_oom.dataframe import add_column
 import numpy as np
@@ -6,7 +10,12 @@ import pandas as pd
 import h5py
 from statsmodels import robust
 import warnings
-from scanpy.preprocessing._highly_variable_genes import _get_mean_bins, _get_disp_stats, _Cutoffs, _nth_highest
+from scanpy.preprocessing._highly_variable_genes import (
+    _get_mean_bins,
+    _get_disp_stats,
+    _Cutoffs,
+    _nth_highest,
+)
 
 
 def _fn_normalize_per_cell(row_ix: int, col_ix: np.ndarray, data: np.ndarray):
@@ -51,7 +60,6 @@ def annotate_dispersion(df, top_n):
     return df
 
 
-
 # had to redo this one, the original code expects an AnnData, but onlu to access adata.n_vars
 def _subset_genes(
     n_vars,
@@ -72,8 +80,8 @@ def _subset_genes(
         n_top_genes = n_vars
     disp_cut_off = _nth_highest(dispersion_norm, n_top_genes)
     # logg.debug(
-        # f"the {n_top_genes} top genes correspond to a "
-        # f"normalized dispersion cutoff of {disp_cut_off}"
+    # f"the {n_top_genes} top genes correspond to a "
+    # f"normalized dispersion cutoff of {disp_cut_off}"
     # )
     return np.nan_to_num(dispersion_norm, nan=-np.inf) >= disp_cut_off
 
@@ -91,13 +99,17 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
     5. scale
     """
     # copy var and obs over
-    source_h5.copy('/var', target_h5,  expand_refs=True)  # expand refs due to categories (each cat-Series has an attrs['categories'] with a reference to /var/__categories/..)    
-    source_h5.copy('/obs', target_h5, expand_refs=True)
+    source_h5.copy(
+        "/var", target_h5, expand_refs=True
+    )  # expand refs due to categories (each cat-Series has an attrs['categories'] with a reference to /var/__categories/..)
+    source_h5.copy("/obs", target_h5, expand_refs=True)
 
     print("norm")
     # do rownorm on the old data, store result in target
-    group_transform = create_empy_matrix(target_h5, '/X', source_h5['/X'].attrs['shape'][1])
-    csr_transform_rows_oom(source_h5['/X'], group_transform, _fn_normalize_per_cell)
+    group_transform = create_empy_matrix(
+        target_h5, "/X", source_h5["/X"].attrs["shape"][1]
+    )
+    csr_transform_rows_oom(source_h5["/X"], group_transform, _fn_normalize_per_cell)
 
     # # HVGs, determined on the normalized data
     print("hvg: mean/var")
@@ -111,17 +123,17 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
 
     # print(mean, type(mean), mean.dtype)
 
-    add_column(target_h5['/var'], 'means', data=mean, encoding_type='array')
+    add_column(target_h5["/var"], "means", data=mean, encoding_type="array")
     # target_h5.create_dataset("/var/means", data=mean)
     # target_h5['/var/means'].attrs['encoding-type'] = 'array'
     # target_h5['/var/means'].attrs['encoding-version'] = '0.2.0'
 
-    add_column(target_h5['/var'], 'vars', data=var, encoding_type='array')
+    add_column(target_h5["/var"], "vars", data=var, encoding_type="array")
     # target_h5.create_dataset("/var/vars", data=var)
     # target_h5['/var/vars'].attrs['encoding-type'] = 'array'
     # target_h5['/var/vars'].attrs['encoding-version'] = '0.2.0'
 
-    add_column(target_h5['/var'], 'dispersion', data=dispersion, encoding_type='array')
+    add_column(target_h5["/var"], "dispersion", data=dispersion, encoding_type="array")
     # target_h5.create_dataset("/var/dispersion", data=dispersion)
     # target_h5['/var/dispersion'].attrs['encoding-type'] = 'array'
     # target_h5['/var/dispersion'].attrs['encoding-version'] = '0.2.0'
@@ -140,13 +152,13 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
 
     else:
         # piggy-backing on scanpys implementation of HVG
-        min_disp: float = 0.5,
-        max_disp: float = np.inf,
-        min_mean: float = 0.0125,
-        max_mean: float = 3,
-        span: float = 0.3,
-        n_bins: int = 20,
-        flavor = 'cell_ranger'
+        min_disp: float = (0.5,)
+        max_disp: float = (np.inf,)
+        min_mean: float = (0.0125,)
+        max_mean: float = (3,)
+        span: float = (0.3,)
+        n_bins: int = (20,)
+        flavor = "cell_ranger"
 
         cutoff = _Cutoffs.validate(
             n_top_genes=n_top_genes,
@@ -157,13 +169,17 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
         )
 
         df = pd.DataFrame(dict(zip(["means", "dispersions"], (mean, dispersion))))
-        df = df.query("means>1e-12").copy() # copy to avoid the chainedIndex warning   # TODO: the scanpy code doesnt do that!
+        df = df.query(
+            "means>1e-12"
+        ).copy()  # copy to avoid the chainedIndex warning   # TODO: the scanpy code doesnt do that!
 
         df["mean_bin"] = _get_mean_bins(df["means"], flavor, n_bins)
         disp_stats = _get_disp_stats(df, flavor)
 
         # actually do the normalization
-        df["dispersions_norm"] = (df["dispersions"] - disp_stats["avg"]) / disp_stats["dev"]
+        df["dispersions_norm"] = (df["dispersions"] - disp_stats["avg"]) / disp_stats[
+            "dev"
+        ]
         df["highly_variable"] = _subset_genes(
             n_vars,
             mean=mean,
@@ -190,23 +206,24 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
     del target_h5["/var"]
     target_h5.move("/varsub1", "/var")
 
-    add_column(target_h5['/var'], 'dispersions_norm', data=df_filtered.query("highly_variable")['dispersions_norm'], encoding_type='array')
+    add_column(
+        target_h5["/var"],
+        "dispersions_norm",
+        data=df_filtered.query("highly_variable")["dispersions_norm"],
+        encoding_type="array",
+    )
 
-
-
-
-    actual_top_n = target_h5["/X"].attrs['shape'][1]
+    actual_top_n = target_h5["/X"].attrs["shape"][1]
     # print("actual_top_n", actual_top_n)
 
-
-     #TODO: explicitly create layers if it doesnt exist, adding encoding metadata
-     # {'encoding-type': 'dict', 'encoding-version': '0.1.0'}
+    # TODO: explicitly create layers if it doesnt exist, adding encoding metadata
+    # {'encoding-type': 'dict', 'encoding-version': '0.1.0'}
 
     # renormalize and log
     print("renorm + log")
     group_transform = create_empy_matrix(target_h5, "/layers/norm_log", actual_top_n)
     csr_transform_rows_oom(target_h5["/X"], group_transform, _fn_normalize_log_per_cell)
-    
+
     # do scaling from /layers/norm_log into /layers/norm_log_scale
     # need to recompute the mean/var
     print("scale")
@@ -221,7 +238,9 @@ def oom_processing(source_h5: h5py.File, target_h5: h5py.File, n_top_genes: int)
         newdata = x
         return new_col_ix, newdata
 
-    group_transform = create_empy_matrix(target_h5, "/layers/norm_log_scale", actual_top_n)
+    group_transform = create_empy_matrix(
+        target_h5, "/layers/norm_log_scale", actual_top_n
+    )
     csr_transform_rows_oom(
         target_h5["/layers/norm_log"], group_transform, row_trans_scale
     )
